@@ -36,13 +36,14 @@ model_export.py                     Weight export for C++ implementation
 model_interpretability.ipynb        Interpretability of S-Edge (Eigenvalue, Transfer Function, Discret. Errors)  
 queue_training.py                   Generate QUEUE for Reproduzing all results 
 setup.py                            Installs all requirements
-test_sc_add_params_macs_to_test.py  ??
-test_sc_cpp_impl.py                 ?? NOT working right now
+test_sc_add_params_macs_to_test.py  Test whole results folder for inference frquencies of 16kHz, 8kHz ,4kHz
+test_sc_cpp_impl.py                 Testing C++ implemented as if it where a PyTorch model*
 test_sc.py                          Test single model with layer-wise downsampling (step-scale sweep)
 train_analys_notebook.ipynb         Train History analysis of results
 train_sc_from_queue.py              ??
 train_sc.py                         Train a single model configuration
 ```
+*The .so file for the C++ inference might not work properly unless it's compiled locally, since shared objects are often sensitive to system architecture, Python version, and linked libraries.
 
 Directories that may be created on-the-fly:
 ```

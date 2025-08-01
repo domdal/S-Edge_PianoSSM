@@ -40,7 +40,7 @@ test_sc_add_params_macs_to_test.py  Test whole results folder for inference frqu
 test_sc_cpp_impl.py                 Testing C++ implemented as if it where a PyTorch model*
 test_sc.py                          Test single model with layer-wise downsampling (step-scale sweep)
 train_analys_notebook.ipynb         Train History analysis of results
-train_sc_from_queue.py              ??
+train_sc_from_queue.py              When executed trains the next model within the Queue (generated with queue_training.py)
 train_sc.py                         Train a single model configuration
 ```
 *The .so file for the C++ inference might not work properly unless it's compiled locally, since shared objects are often sensitive to system architecture, Python version, and linked libraries.

@@ -17,7 +17,7 @@ Mach Learn 114, 175 (2025), presented at ECMLPKDD'25
 Figure 1: The discrete recurrent forward path of our proposed S-Edge compared to the Original S5.
 </p>
 
-The S-Edge layer builds on the prior S5 work [paper](https://arxiv.org/abs/2208.04933), while S5 in implemented in JAX [s5-jax version](https://github.com/lindermanlab/S5) we operate in PyTorch, and started with the PyTorch ported version of S5 [s5-pytorch](https://github.com/i404788/s5-pytorch), where we mostly just used and modified the base implementation of the SSM class.
+The S-Edge layer builds on the prior S5 [paper](https://arxiv.org/abs/2208.04933), while S5 in implemented in JAX [s5-jax version](https://github.com/lindermanlab/S5) we operate in PyTorch, and started with the PyTorch ported version of S5 [s5-pytorch](https://github.com/i404788/s5-pytorch), where we just used and modified the base implementation of the SSM class.
 
 ## Requirements & Installation
 To run the code on your machine you can install the requirements by running

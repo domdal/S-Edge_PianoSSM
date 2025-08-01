@@ -1,0 +1,11 @@
+.env_a40x2
+.env*
+.vscode
+slurm*
+data
+data*
+results*
+results_journal
+export_model
+__pycache__
+*.zip

@@ -69,6 +69,8 @@ print('Evaluate on test set')
 
 test_loss, test_acc, confusion_matrix = evaluate(model_wrapper(), criterion, test_loader, transform=transform, return_confusion=True)
 print(f'Test loss: {test_loss}, Test accuracy: {test_acc}')
+print(CppSEdge.getMetaInfo())
+
 confusion_matrix = confusion_matrix
 fig = plt.figure(figsize=(8, 8))
 plt.imshow(confusion_matrix, cmap='hot', interpolation='nearest')

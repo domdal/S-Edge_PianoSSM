@@ -15,3 +15,4 @@ torch_audiomentations
 matplotlib
 plotly 
 nbformat
+pybind11

@@ -12,6 +12,9 @@ import sys
 import subprocess
 
 # Upgrade pip
+subprocess.check_call(['git', 'submodule', 'init'])
+
+# Upgrade pip
 subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'])
 
 # Install required packages

@@ -16,12 +16,12 @@ subprocess.run("python model_export.py", shell=True, executable="/bin/bash", std
 print("**********************************************************************************************************************************")
 print("Starting conversion...")
 print("**********************************************************************************************************************************")
-subprocess.run("python convert_model_to_cpp.py", shell=True, executable="/bin/bash", stderr=subprocess.STDOUT)
+subprocess.run("python model_cpp_convert.py", shell=True, executable="/bin/bash", stderr=subprocess.STDOUT)
 # This will convert the model to C++ code and save it in the cpp_code folder, and then compile it
 # %% Now evaluate the cpp model
 print("**********************************************************************************************************************************")
 print("Starting evaluation...")
 print("**********************************************************************************************************************************")
-subprocess.run("python evaluate_cpp_model.py", shell=True, executable="/bin/bash", stderr=subprocess.STDOUT)
+subprocess.run("python test_sc_cpp_impl.py", shell=True, executable="/bin/bash", stderr=subprocess.STDOUT)
 # This will evaluate the cpp model and save the results in the results folder
 # Finally, the confusion matrix will be saved in the root folder as a png file

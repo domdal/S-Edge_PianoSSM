@@ -49,7 +49,7 @@ for key, value in hyperparameters_yaml.items():
     globals()[key] = value
 
 print("**************************************************************************************************************************")
-print("WARNING: Overwriting epochs to 1 for quick testing of the code")
+print("WARNING: Overwriting epochs to 1 for quick testing of the code:", __file__, " : ", 52)
 print("**************************************************************************************************************************")
 epochs = 1
 

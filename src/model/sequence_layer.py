@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import torch.nn as nn
 
 import numpy as np
 
@@ -24,7 +25,7 @@ class SequenceLayer(torch.nn.Module):
                  stability='abs',
                  trainable_SkipLayer=False,
                  dropout=0.0,
-                 act='RELu'
+                 activation=nn.ReLU()
                  ):
         super().__init__()
         self.s5 = MIMOSSM(d_in, d_state, d_out, step_scale=step_scale,
@@ -46,7 +47,7 @@ class SequenceLayer(torch.nn.Module):
         self.stability=stability
         self.trainable_SkipLayer=trainable_SkipLayer
         self.dropout=dropout
-        self.act=act
+        self.activation=activation
 
         self.trainable_SkipLayer = trainable_SkipLayer
         if self.trainable_SkipLayer:
@@ -84,16 +85,6 @@ class SequenceLayer(torch.nn.Module):
         else:
             self.attn_norm = torch.nn.Identity()
 
-        if act == 'RELu':
-            self.act = torch.nn.ReLU()
-        elif act == 'LeakyRELu':
-            self.act = torch.nn.LeakyReLU()
-        elif act == 'Identity':
-            self.act = torch.nn.Identity()
-        else:
-            print(f'act: {act}')
-            raise NotImplementedError('Activation function not implemented')
-
     def forward(self, x):
 
         step_scale = self.s5.step_scale
@@ -111,11 +102,11 @@ class SequenceLayer(torch.nn.Module):
         out = self.s5(fx)
 
         if self.s5.complex_output:
-            x = (self.act(out.real) + 1j*self.act(out.imag)) + res
+            x = (self.activation(out.real) + 1j*self.activation(out.imag)) + res
         else:
-            x = self.dropout(self.act(out.real)) + res
+            x = self.dropout(self.activation(out.real)) + res
             # x = F.leaky_relu(out).real + res
-        # x = x/np.sqrt(2)
+        x = x / np.sqrt(2)
         return x
 
     def set_step_scale(self, step_scale, previous_step_scale=None):

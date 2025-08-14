@@ -33,6 +33,31 @@ def discretize_zoh(Lambda, B, B_bias, Delta, bias):
     B_bar = ((Lambda_bar - 1)/Lambda)[..., None] * B_concat
     return Lambda_bar, B_bar
 
+def discretize_zoh_norm_angle(norm_angle, B, B_bias, Delta, bias):
+    """Discretize a diagonalized, continuous-time linear SSM
+    using zero-order hold method.
+    Args:
+        Lambda (complex64): diagonal state matrix              (P,)
+        B      (complex64): input matrix + bias                (P, H + 1)
+        Delta (float32): discretization step sizes             (P,)
+    Returns:
+        discretized Lambda_bar (complex64), B_bar (complex64)  (P,), (P,H + 1)
+    """
+    if bias:
+        B_concat = torch.cat((B, B_bias.unsqueeze(1)), dim=-1)
+    else:
+        B_concat = B
+    Lambda_bar = torch.exp(torch.exp(norm_angle) * Delta)
+    B_bar = ((Lambda_bar - 1)*torch.exp(-norm_angle))[..., None] * B_concat
+    return Lambda_bar, B_bar
+
+def as_complex(t: torch.Tensor, dtype=torch.complex64):
+    assert t.shape[-1] == 2, "as_complex can only be done on tensors with shape=(...,2)"
+    nt = torch.complex(t[..., 0], t[..., 1])
+    if nt.dtype != dtype:
+        nt = nt.type(dtype)
+    return nt
+
 class SSM(torch.nn.Module):
     def __init__(self,
                  d_in: int,
@@ -47,7 +72,8 @@ class SSM(torch.nn.Module):
                  complex_output=False,
                  B_C_init='orthogonal',
                  ensure_stability='abs',
-                 symmetric=False,
+                 symmetric=True,
+                 what2train = 'phase_norm'
                  ): 
         """The Modified S5 SSM
         Args:
@@ -67,13 +93,14 @@ class SSM(torch.nn.Module):
         # lambdaInit  (float32): Initial diagonal state matrix       (P,2)
         self.Lambda = torch.nn.Parameter(make_linear_eigenvalues(d_state, symmetric=self.symmetric))
         self.log_step = torch.nn.Parameter(init_log_steps(d_state, dt_min, dt_max))
-        self.discretize = discretize_zoh
+        self.discretize = discretize_zoh_norm_angle
 
         self.input_bias = input_bias
         self.output_bias = output_bias
         self.complex_output = complex_output
         self.step_scale = step_scale
         self.ensure_stability = ensure_stability
+        self.what2train = what2train
 
         if self.input_bias:
             if bias_init == 'zero':
@@ -117,11 +144,11 @@ class SSM(torch.nn.Module):
             B_r = torch.empty(d_state, d_in)
             B_i = torch.empty(d_state, d_in)
             if d_in == 1:
-                B_r = torch.nn.init.normal_(B_r, std=gain)
-                B_i = torch.nn.init.normal_(B_i, std=gain)
+                B_r = torch.nn.init.normal_(B_r, std=gain*10)
+                B_i = torch.nn.init.normal_(B_i, std=gain*10)
             else:
-                B_r = torch.nn.init.orthogonal_(B_r.T, gain=gain).T
-                B_i = torch.nn.init.orthogonal_(B_i.T, gain=gain).T
+                B_r = torch.nn.init.orthogonal_(B_r.T, gain=gain*10).T
+                B_i = torch.nn.init.orthogonal_(B_i.T, gain=gain*10).T
 
             self.B = torch.nn.Parameter(torch.stack((B_r, B_i), dim=-1))
 
@@ -192,13 +219,48 @@ class SSM(torch.nn.Module):
         # print('C', self.C.shape)
         # print('B_bias', self.B_bias.shape)
         # print('C_bias', self.C_bias.shape)
+        
+        if self.what2train == 'phase_norm' or self.what2train == 'real_eigenvalues':
+            real_dynamics = self.Lambda * torch.exp(self.log_step).view(-1, 1)
+            eigenvalues = as_complex(real_dynamics)
+            self.norm = torch.nn.Parameter(torch.log(torch.abs(eigenvalues)).detach())
+            self.angle = torch.nn.Parameter(torch.angle(eigenvalues).detach())
 
+            # self.Real_Lambda = torch.nn.Parameter(real_dynamics.detach())
+
+            B_c = as_complex(self.B)
+            B_bias_c = as_complex(self.B_bias)
+            Lambda_bars, B_bars = self.discretize(as_complex(self.Lambda), B_c, B_bias_c,  self.step_scale * torch.exp(self.log_step), self.input_bias)
+
+            B_bias_b = B_bars * (eigenvalues/(torch.exp(eigenvalues)-1))[..., None]
+
+            #B_concat = torch.cat((B, B_bias.unsqueeze(1)), dim=-1)
+            if self.input_bias:
+                self.B2 = torch.nn.Parameter(B_bias_b[..., 0:-1].clone().detach())
+                self.B2_bias = torch.nn.Parameter(B_bias_b[..., -1].clone().detach())
+            else:
+                self.B2 = torch.nn.Parameter(B_bias_b.clone().detach())
+                self.B2_bias = None#torch.nn.Parameter(torch.zeros_like(B_bias_b[..., -1].clone().detach()))
+            # eigenvalues = torch.exp(1j*self.angle)
+            # B_bias_b = B_bars * (eigenvalues/(torch.exp(eigenvalues)-1))[..., None]
+            
+            # self.B3 = torch.nn.Parameter(B_bias_b[..., 0:-1].clone().detach())
+            # self.B3_bias = torch.nn.Parameter(B_bias_b[..., -1].clone().detach())
+
+            # print('orig_init', real_dynamics)
+            # print('fake_init',torch.exp(self.norm + 1j*self.angle))
+
+            delattr(self, 'B')
+            delattr(self, 'B_bias')
+            delattr(self, 'Lambda')
+            delattr(self, 'log_step')
 
     def initial_state(self, batch_size: Optional[int]):
         batch_shape = (batch_size,) if batch_size is not None else ()
         return torch.zeros((*batch_shape, self.C.shape[-2]))
 
     def forward_rnn(self, signal, prev_state):
+        assert False, "not implemented for norm angle SSMs"
         Lambda_c = as_complex(self.Lambda)
         if self.ensure_stability == 'relu':
             Lambda_c = torch.complex(-F.relu(-Lambda_c.real), Lambda_c.imag)
@@ -248,27 +310,37 @@ class SSM(torch.nn.Module):
     def forward(self, signal):
         with torch.no_grad():
             if self.ensure_stability == 'relu':
-                self.Lambda.data[:, 0] = -F.relu(-self.Lambda.data[:, 0])
+                eigenvalue = torch.exp(self.norm.data + 1j*self.angle.data) 
+                eigenvalue.real = -F.relu(-eigenvalue.real) 
+                self.angle.data = torch.angle(eigenvalue)
+                # self.Lambda.data[:, 0] = -F.relu(-self.Lambda.data[:, 0])
                 # Lambda_c.real = -F.relu(-Lambda_c.real) # Ensure stability
             elif self.ensure_stability == 'abs':
-                self.Lambda.data[:, 0] = -torch.abs(self.Lambda.data[:, 0])
+                eigenvalue = torch.exp(self.norm.data + 1j*self.angle.data) 
+                eigenvalue.real = -torch.abs(-eigenvalue.real) 
+                self.angle.data = torch.angle(eigenvalue)
+                # self.Lambda.data[:, 0] = -torch.abs(self.Lambda.data[:, 0])
                 # Lambda = torch.complex(-torch.abs(Lambda.real), Lambda.imag)
 
+            norm_angle = torch.complex(self.norm, self.angle)
+            
+            
             if not self.symmetric:
-                self.Lambda.data[:, 1] = torch.abs(self.Lambda.data[:, 1])
+                assert False, "not implemented for norm angle SSMs with non-symmetric eigenvalues"
+                # self.Lambda.data[:, 1] = torch.abs(self.Lambda.data[:, 1])
 
-        Lambda = as_complex(self.Lambda)
+        # Lambda = as_complex(self.Lambda)
 
-        step = self.step_scale * torch.exp(self.log_step)
+        step = self.step_scale # * torch.exp(self.log_step)
         # print('Lambda', Lambda.shape)
 
-        B_c = as_complex(self.B)
-        B_bias_c = as_complex(self.B_bias)
+        B_c = self.B2
+        B_bias_c = self.B2_bias
         C_c = as_complex(self.C)
         C_bias_c = as_complex(self.C_bias)
 
         Lambda_bars, B_bars = self.discretize(
-            Lambda, B_c, B_bias_c, step, self.input_bias)
+            norm_angle, B_c, B_bias_c, step, self.input_bias)
         if self.input_bias:
             B_bar = B_bars[:, 0:-1]
             B_bias_bar = B_bars[:, -1]

@@ -32,6 +32,8 @@ src/                                Source code
     model           Models, RZOH-Regularaization, etc.
     utils           Utils for datasets, experiment manager etc.
 
+full_model_to_code_test.py          Performes training, export, conversion, and evaluation of S-Edge (with default values)
+model_cpp_convert.py                Converts the exported weights into a C++ implementation
 model_export.py                     Weight export for C++ implementation 
 model_interpretability.ipynb        Interpretability of S-Edge (Eigenvalue, Transfer Function, Discret. Errors)  
 queue_training.py                   Generate QUEUE for reproduzing all results 
@@ -50,7 +52,8 @@ Directories that may be created on-the-fly:
 data/               At first training Speech Commands automatically download
 results_journal/    Results for individual runs (train_sc.py)       
 results_vsc/        When reproducing all model training runs (generated with queue_training.py)
-export_model/       
+export_model/       The default location of exported models (model_export.py)
+cpp_model/          The default location, for copying and generating C++ implementation (model_cpp_convert.py)
 ```
 
 ## How to get from a untrained model towards the C++ Implementation?
@@ -59,9 +62,12 @@ export_model/
 2. Train the model with `train_sc.py`
 3. Within the results_journal folder you can see observe the training run with run id e.g., `Run#0`.
 4. Play with analysis tools and methods
-5. Decide which downsampling, (step-scale) configurations you would like to apply/test.
+5. Decide which downsampling, (step-scale) configurations you would like to apply/test. `test_sc.py` runs a full sweep for a selected model.
 6. `model_export.py` tests a model with differnt step scales and compares the Pytorch vs Numpy accuracy.
-7. Use the generated `model_dict.npy` with the [C++ implementation for S-Edge](https://github.com/embedded-machine-learning/Cpp-NN)  
+7. Use the generated `model_dict.npy` with the [C++ implementation for S-Edge](https://github.com/embedded-machine-learning/Cpp-NN), by configuring and running `model_cpp_convert.py`
+8. If desired modify the `cpp_model/test_SEdge.cpp` file to enable benchmarking data.
+9. If porting it to an MCU check out the release [STM implementation](https://github.com/embedded-machine-learning/Cpp-NN/releases/tag/cpp20), especially `nn.hpp`and `nn.cpp` for minimal overhead and C compadability. 
+
 
 
 ## Citation

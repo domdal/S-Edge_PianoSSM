@@ -322,13 +322,14 @@ class SSM(torch.nn.Module):
                 # self.Lambda.data[:, 0] = -torch.abs(self.Lambda.data[:, 0])
                 # Lambda = torch.complex(-torch.abs(Lambda.real), Lambda.imag)
 
-            norm_angle = torch.complex(self.norm, self.angle)
             
             
-            if not self.symmetric:
-                assert False, "not implemented for norm angle SSMs with non-symmetric eigenvalues"
-                # self.Lambda.data[:, 1] = torch.abs(self.Lambda.data[:, 1])
+        if not self.symmetric:
+            assert False, "not implemented for norm angle SSMs with non-symmetric eigenvalues"
+            # self.Lambda.data[:, 1] = torch.abs(self.Lambda.data[:, 1])
 
+        norm_angle = torch.complex(self.norm, self.angle)
+        
         # Lambda = as_complex(self.Lambda)
 
         step = self.step_scale # * torch.exp(self.log_step)
